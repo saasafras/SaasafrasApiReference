@@ -13,23 +13,33 @@ namespace SaasafrasApiReference
 	
 	public class SaasafrasApi
 	{
-		public const string X_SAASAFRAS_JWT = "";
-		public RestClient client;
+		public static string X_SAASAFRAS_JWT = null; // Required for all calls
+		public static int[] WORKSPACES = null; // Required for CreateSolution
+		public static string CLIENTID = null;
+		public static string SOLUTIONID = null;
+		private RestClient client;
 
 		public SaasafrasApi()
 		{
 			client = new RestClient("https://8bdw7ju091.execute-api.us-east-2.amazonaws.com/dev/api/");
 			client.AddDefaultHeader("x-saasafras-jwt", X_SAASAFRAS_JWT);
+			client.AddDefaultHeader("content-type", "application/json");
 		}
 
 		public static int Main()
 		{
+
+			if (X_SAASAFRAS_JWT == null) throw new Exception("JWT Required");
 			var saas = new SaasafrasApi();
 
+			var client = saas.CreateClient("smitty");
 			var myClientIds = saas.GetClients().ClientIds;
-			var someClientId = "november";
-			var clientDetails = saas.GetClientDetails(someClientId);
+			var clientDetails = saas.GetClientDetails(CLIENTID ?? client.ClientId);
 
+			var newSolution = saas.CreateSolution("my_solution", WORKSPACES );
+			var mySolutions = saas.GetSolutions();
+			var solutionDetails = saas.GetSolutionDetails(SOLUTIONID ?? newSolution.SolutionId);
+			
 			return 0;
 		}
 
@@ -67,6 +77,30 @@ namespace SaasafrasApiReference
 		}
 
 		/// <summary>
+		/// Creates a new client <br/>
+		/// Returns <br/>
+		/// 1. A message indicating sucesss/failure
+		/// 2. The new client's id, or null
+		/// </summary>
+		/// <param name="info">optional client properties</param>
+		/// <param name="environments">optional default environment names</param>
+		public CreateClientResponse CreateClient(string name, Info info = null, string[] environments = null)
+		{
+			Console.WriteLine($"calling POST/clients");
+			var request = new RestRequest($"clients", Method.POST);
+			request.AddJsonBody(new
+			{
+				name,
+				info,
+				environments
+			});
+			var response = client.Execute(request);
+			var result = DeserializeObject<CreateClientResponse>(response.Content);
+			Console.WriteLine($"Created Client with id '{result.ClientId}'");
+			return result;
+		}
+
+		/// <summary>
 		/// Returns <br/> 
 		/// 1. name/id/version of all your solutions
 		/// </summary>
@@ -83,7 +117,6 @@ namespace SaasafrasApiReference
 		/// <summary>
 		/// Returns <br/>
 		/// 1. the entire solution
-		/// Not for the faint of heart.
 		/// </summary>
 		public GetSolutionResponse GetSolutionDetails(string solutionId, string version = "0.0")
 		{
@@ -98,20 +131,27 @@ namespace SaasafrasApiReference
 			return result;
 		}
 
-		public CreateSolutionResponse CreateSolution(string clientId)
+		/// <summary>
+		/// Creates a new solution from the provided workspacesIds. <br/>
+		/// Returns <br/>
+		/// 1. A message indicating sucesss/failure
+		/// 2. The new solution's id, or null
+		/// </summary>
+		public CreateSolutionResponse CreateSolution(string name, int[] workspaceIds)
 		{
-			Console.WriteLine($"calling GET/client/{clientId}");
-			var request = new RestRequest($"client/{clientId}");
+			Console.WriteLine($"calling POST/apps");
+			var request = new RestRequest($"apps", Method.POST);
+			request.AddJsonBody(new
+			{
+				name,
+				workspaceIds
+			});
 			var response = client.Execute(request);
-			var result = DeserializeObject<GetClientResponse>(response.Content);
-			var instances = (from envs in result.Environments
-							 select envs.Deployments.Count).Sum();
-			Console.WriteLine($"Client '{result.Name}' has {result.Environments.Count} Envs and {instances} Solution Instances");
+			var result = DeserializeObject<CreateSolutionResponse>(response.Content);
+			Console.WriteLine($"Created Solution with id '{result.SolutionId}'");
 			return result;
 		}
 
 
 	}
-
-	
 }
