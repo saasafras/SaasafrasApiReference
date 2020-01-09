@@ -26,13 +26,13 @@ namespace SaasafrasApiReference
 			public long WorkspaceId { get; set; }
 
 			/// <summary>
-			/// Refer to Podio API documentation
+			/// Refer to Podio API documentation for Applications & Fields
 			/// </summary>
 			[JsonProperty("apps")]
 			public List<object> Apps { get; set; }
 
 			/// <summary>
-			/// Refer to Podio API documentation
+			/// Refer to Podio API documentation for Workspaces
 			/// </summary>
 			[JsonProperty("PodioSpace")]
 			public object PodioSpace { get; set; }

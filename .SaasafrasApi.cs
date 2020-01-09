@@ -10,8 +10,8 @@ using static Newtonsoft.Json.JsonConvert;
 
 namespace SaasafrasApiReference
 {
-	
-	public class SaasafrasApi
+
+	public partial class SaasafrasApi
 	{
 		public static string X_SAASAFRAS_JWT = null; // Required for all calls
 		public static int[] WORKSPACES = null; // Required for CreateSolution
@@ -151,6 +151,33 @@ namespace SaasafrasApiReference
 			Console.WriteLine($"Created Solution with id '{result.SolutionId}'");
 			return result;
 		}
+
+		/// <summary>
+		/// Defines a new instance of a solution into a client's environment, but does not make changes to Podio.<br/>
+		/// Each environment can only have one instance of a given solution.
+		/// </summary>
+		/// <param name="orgId">The organization to deploy INTO</param>
+		public CreateInstanceResponse CreateInstance(string clientId, string envId, string solutionId, string version, long orgId)
+		{
+			Console.WriteLine($"calling POST/client/{clientId}/env/{envId}");
+			var request = new RestRequest($"client/{clientId}/env/{envId}", Method.POST);
+			var body = new CreateInstanceRequest
+			{
+				Deploy =
+				{
+					SolutionId = solutionId,
+					Version = version
+				},
+				OrgId = orgId
+			};
+			request.AddJsonBody(body);
+			var response = client.Execute(request);
+			if (response.StatusCode == System.Net.HttpStatusCode.GatewayTimeout) throw new Exception($"Instance likely created, retry request or run GET client/{clientId} to confirm");
+			var result = DeserializeObject<CreateInstanceResponse>(response.Content);
+			Console.WriteLine($"Created Instance with id '{result.InstanceId}'");
+			return result;
+		}
+		
 
 
 	}
