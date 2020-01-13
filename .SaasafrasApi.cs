@@ -13,10 +13,9 @@ namespace SaasafrasApiReference
 
 	public partial class SaasafrasApi
 	{
-		public static string X_SAASAFRAS_JWT = null; // Required for all calls
-		public static int[] WORKSPACES = null; // Required for CreateSolution
-		public static string CLIENTID = null;
-		public static string SOLUTIONID = null;
+		public static string X_SAASAFRAS_JWT = "eyJhbGciOiJIUzI1NiIsInR5cCI6ICJKV1QifQ.eyJPQXV0aENsaWVudElkIjoic2Fhc2FmcmFzLTRraXIwNCIsIlByaXZpbGVnZXMiOlt7InNvbHV0aW9uSWQiOm51bGwsInZlcnNpb24iOm51bGwsImNsaWVudEZpbHRlciI6bnVsbCwiY29tbWFuZCI6bnVsbCwidXJsIjpudWxsLCJmaWx0ZXIiOm51bGx9XSwiaXNzIjoiYXBpLnNhYXNzYWZyYXMuY29tIiwic3ViIjoicmVmLmpvaG5nQGdtYWlsLmNvbSIsImF1ZCI6Imh0dHBzOi8vd3d3LnNhYXNzYWZyYXMuY29tL2F1dGgiLCJpYXQiOjE1Nzg2ODA5MjIsIm5iZiI6MTU3ODY4MDkyMiwiZXhwIjoxNTc4NzY3MzgyfQ.I--_ve-_vX4veu-_vSoZRO-_ve-_ve-_ve-_vWXbhe-_vSDvv73vv70eQzs7L--_vR9P77-977-9Mw"; // Required for all calls - https://www.youtube.com/watch?v=iThtELZvfPs
+		public static int[] WORKSPACE_IDS = { 6846704, 6846711 }; // The Workspace(s) you want to use for your solution - Required for CreateSolution
+		public static int ORG_ID = 1593891; // The Organization you want to deploy an instance of your solution into - Required for CreateInstance & DeployInstance
 		private RestClient client;
 
 		public SaasafrasApi()
@@ -26,21 +25,38 @@ namespace SaasafrasApiReference
 			client.AddDefaultHeader("content-type", "application/json");
 		}
 
-		public static int Main()
-		{
 
+		/// <summary>
+		/// An example case demonstrating how to perform a deployment with no pre-existing Solutions or Clients.
+		/// </summary>
+		public static void Main()
+		{
 			if (X_SAASAFRAS_JWT == null) throw new Exception("JWT Required");
 			var saas = new SaasafrasApi();
 
-			var client = saas.CreateClient("smitty");
-			var myClientIds = saas.GetClients().ClientIds;
-			var clientDetails = saas.GetClientDetails(CLIENTID ?? client.ClientId);
-
-			var newSolution = saas.CreateSolution("my_solution", WORKSPACES );
+			// Create a new Solution, then take a peek to validate it.
+			var newSolution = saas.CreateSolution(name: "my_solution",workspaceIds: WORKSPACE_IDS);
 			var mySolutions = saas.GetSolutions();
-			var solutionDetails = saas.GetSolutionDetails(SOLUTIONID ?? newSolution.SolutionId);
+			var newSolutionDetails = saas.GetSolutionDetails(solutionId: newSolution.SolutionId);
+
+			// Create a new Client, then take a peek to validate it.
+			var newClient = saas.CreateClient(name: "smitty");
+			var myClientIds = saas.GetClients().ClientIds;
+			var newClientDetails = saas.GetClientDetails(clientId: newClient.ClientId);
+
+			// Create a new Instance of the Solution for the Client
+			var myInstance = saas.CreateInstance(
+				clientId: newClientDetails.Id,
+				envId: newClientDetails.Environments[0].EnvironmentId,
+				solutionId: newSolutionDetails.SolutionId,
+				version: newSolutionDetails.Version,
+				orgId: ORG_ID);
+
+			// Try to go ahead and start Building out the instance in Podio
+			var myInstanceInstallationConfirmation = saas.DeployInstance(
+				newClientDetails.Id, newClientDetails.Environments[0].EnvironmentId, newSolutionDetails.SolutionId, newSolutionDetails.Version, ORG_ID, myInstance.InstanceId);
 			
-			return 0;
+			return;
 		}
 
 		/// <summary>
@@ -148,6 +164,7 @@ namespace SaasafrasApiReference
 			});
 			var response = client.Execute(request);
 			var result = DeserializeObject<CreateSolutionResponse>(response.Content);
+			if (result.SolutionId == null) throw new Exception("JWT is invalid, or you do not have admin permissions for those Workspaces");
 			Console.WriteLine($"Created Solution with id '{result.SolutionId}'");
 			return result;
 		}
@@ -163,9 +180,8 @@ namespace SaasafrasApiReference
 			var request = new RestRequest($"client/{clientId}/env/{envId}", Method.POST);
 			var body = new CreateInstanceRequest
 			{
-				Deploy =
-				{
-					SolutionId = solutionId,
+				Deploy = new Deploy {
+					AppId = solutionId,
 					Version = version
 				},
 				OrgId = orgId
@@ -177,7 +193,34 @@ namespace SaasafrasApiReference
 			Console.WriteLine($"Created Instance with id '{result.InstanceId}'");
 			return result;
 		}
-		
+
+		/// <summary>
+		/// Installs the Solution's Podio workpaces into the client's environment.<br/>
+		/// NB: The API will likely time out before the Instance is fully installed - Check Podio for the result.
+		/// </summary>
+		/// <param name="orgId">The organization to deploy INTO</param>
+		public DeployInstanceResponse DeployInstance(string clientId, string envId, string solutionId, string version, long orgId, string deploymentId)
+		{
+			Console.WriteLine($"calling POST/client/{clientId}/env/{envId}");
+			var request = new RestRequest($"client/{clientId}/env/{envId}", Method.POST);
+			var body = new DeployInstanceRequest
+			{
+				Command = "run-deploy-steps",
+				DeploymentId = deploymentId,
+				Deploy = new Deploy {
+					AppId = solutionId,
+					Version = version
+				},
+				OrgId = orgId
+			};
+			request.AddJsonBody(body);
+			var response = client.Execute(request);
+			if (response.StatusCode == System.Net.HttpStatusCode.GatewayTimeout) throw new Exception($"Instance likely deployed, check Podio to confirm");
+			var result = DeserializeObject<DeployInstanceResponse>(response.Content);
+			Console.WriteLine($"{result.Message}");
+			return result;
+		}
+
 
 
 	}
