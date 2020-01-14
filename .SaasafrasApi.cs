@@ -13,9 +13,9 @@ namespace SaasafrasApiReference
 
 	public partial class SaasafrasApi
 	{
-		public static string X_SAASAFRAS_JWT = "eyJhbGciOiJIUzI1NiIsInR5cCI6ICJKV1QifQ.eyJPQXV0aENsaWVudElkIjoic2Fhc2FmcmFzLTRraXIwNCIsIlByaXZpbGVnZXMiOlt7InNvbHV0aW9uSWQiOm51bGwsInZlcnNpb24iOm51bGwsImNsaWVudEZpbHRlciI6bnVsbCwiY29tbWFuZCI6bnVsbCwidXJsIjpudWxsLCJmaWx0ZXIiOm51bGx9XSwiaXNzIjoiYXBpLnNhYXNzYWZyYXMuY29tIiwic3ViIjoicmVmLmpvaG5nQGdtYWlsLmNvbSIsImF1ZCI6Imh0dHBzOi8vd3d3LnNhYXNzYWZyYXMuY29tL2F1dGgiLCJpYXQiOjE1Nzg2ODA5MjIsIm5iZiI6MTU3ODY4MDkyMiwiZXhwIjoxNTc4NzY3MzgyfQ.I--_ve-_vX4veu-_vSoZRO-_ve-_ve-_ve-_vWXbhe-_vSDvv73vv70eQzs7L--_vR9P77-977-9Mw"; // Required for all calls - https://www.youtube.com/watch?v=iThtELZvfPs
-		public static int[] WORKSPACE_IDS = { 6846704, 6846711 }; // The Workspace(s) you want to use for your solution - Required for CreateSolution
-		public static int ORG_ID = 1593891; // The Organization you want to deploy an instance of your solution into - Required for CreateInstance & DeployInstance
+		public static string X_SAASAFRAS_JWT = ""; // Required for all calls - https://www.youtube.com/watch?v=iThtELZvfPs
+		public static int[] WORKSPACE_IDS = { 0, 1, 2 }; // The Workspace(s) you want to use for your solution - Required for CreateSolution
+		public static int ORG_ID = 3456; // The Organization you want to deploy an instance of your solution into - Required for CreateInstance & DeployInstance
 		private RestClient client;
 
 		public SaasafrasApi()
